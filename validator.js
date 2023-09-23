@@ -23,7 +23,16 @@ function Validator (options){
         // Lặp qua từng rule và kiểm tra
         // Nếu có lỗi thì dừng việc kiểm tra -> Cứ có lỗi nào trước là break luôn -> Message lỗi đầu tiên nhận đc
         for(var i = 0; i < rules.length; ++i) {
-            errorMessage = rules[i](inputElement.value);
+            switch (inputElement.type) {
+                case 'radio': 
+                case 'checkbox': 
+                    errorMessage = rules[i](
+                        formElement.querySelector(rule.selector + ':checked')
+                    );
+                    break;
+                default: 
+                    errorMessage = rules[i](inputElement.value);
+            }
             if(errorMessage) break
         }
 
@@ -62,7 +71,32 @@ function Validator (options){
                     var enableInputs = formElement.querySelectorAll('[name]:not([disable])') //Select tất cả field có atb là name, không có atb [disable]
     
                     var formValue = Array.from(enableInputs).reduce(function (values, input) {
-                        [values[input.name] = input.value]
+
+                        switch (input.type) {
+                            case 'radio':
+                                values[input.name] = formElement.querySelector('input[name="' + input.name + '"]:checked').value;
+                                break;
+                            case 'checkbox':
+                                if (!input.matches(':checked')) {
+                                    values[input.name] = '';
+                                    return values;
+                                }
+
+                                if (!Array.isArray(values[input.name])) {
+                                    values[input.name] = [];
+                                }
+
+                                values[input.name].push(input.value);
+
+                                break;
+                            case 'file':
+                                values[input.name] = input.files; 
+                                break;
+                            default:
+                                values[input.name] = input.value;
+                                
+                        }
+
                         return values;
                     }, {}); // Chuyển Nodelist thành arr để dùng được reduce
                     options.onSubmit(formValue)
@@ -85,23 +119,23 @@ function Validator (options){
                 selectorRules[rule.selector] = [rule.test]; // Nếu ko phải là mảng thì gán phần tử đầu của mảng là cái rule đầu
             }
 
-            var inputElement = formElement.querySelector(rule.selector); // Tìm input ở trong form đã chỉ định
+            var inputElements = formElement.querySelectorAll(rule.selector); // Tìm input ở trong form đã chỉ định
             
-            if(inputElement) {
+            Array.from(inputElements).forEach(function (inputElement){
                 // Xử lí trường hợp blur khỏi input
                 inputElement.onblur = function() {
                     // value: inputElement.value
                     // test: func: rule.test
                     validate(inputElement, rule)
                 }
-                
+
                 // Xử lí trường hợp người dùng đang nhập
                 inputElement.oninput = function(){ // Bắt sự kiện khi gõ
                     var errorElement = getParent(inputElement, options.formGroupSelector).querySelector(options.errorSelector);
                     errorElement.innerText = ''
                     getParent(inputElement, options.formGroupSelector).classList.remove('invalid')
                 }
-            }
+            });
         });
     }
 }
@@ -115,7 +149,7 @@ Validator.isRequired = function (selector, message){
     return {
         selector: selector,
         test: function(value) {
-            return value.trim() ? undefined : message || 'Vui lòng nhập trường này'
+            return value? undefined : message || 'Vui lòng nhập trường này'
         }
     };
 }

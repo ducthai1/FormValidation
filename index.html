@@ -73,6 +73,7 @@
                     Validator.isEmail('#email'),
                     Validator.minLength('#password', 6),
                     Validator.isRequired('#password_confirmation'),
+                    Validator.isRequired('input[name="gender"]'),
                     Validator.isConfirmed('#password_confirmation', function(){
                         return document.querySelector('#form-1 #password').value
                     }, 'Mật khẩu nhập lại không chính xác')
